@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Article Categorizer</title>
+    <!---------Linking to Bootstrap----------->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class ="vertical-center" style="min-height: 100%; min-height: 100vh; display: flex; align-items: center;">
+        <div class="container vertical-center">
+            <form>
+                <div class="form-group ">
+                    <select class="form-control" id="select_input_type">
+                        <option>Text Headline</option>
+                        <option>Article Link</option>
+                    </select>
+
+                    <input id="H_text" class="form-control" type="text" placeholder="Please Input a News Headline">
+                    
+                    <input id="H_url" class="form-control" type="text" placeholder="Please Input the URL for a News Article">
+                    <div class="col text-center" style="margin-top: 20px;">
+                    <button id="submit_button" type="button" class="btn btn-primary" onClick="send_data()">Categorize</button>
+                </div>
+                </div>
+            </form>
+
+            <div class="result"><span id="result">Prediction will be displayed here</span><br>
+            </div>
+            
+            <div class="mx-auto" style="width: 200px;">
+                <div class="pred_assessment" style="display: none;">
+                    <button id="Correct" style="font-size: x-large; width: 50px; height: 50px;" type="button" class="btn btn-success" onClick="Add_this()">✓</button>
+                    <button id="Wrong" style="font-size: x-large; width: 50px; height: 50px;" type="button" class="btn btn-danger" onClick="show_choices()">x</button>
+                </div>
+                <div class="form-group wrong_choices" style="display: none;">
+                    <select class="form-control" id="wrong_choices">
+                        <option>Business and Politics</option>
+                        <option>Science and Technology</option>
+                        <option>Entertainment</option>
+                        <option>Health</option>
+                    </select>
+                    <div class="col text-center" style="margin-top: 20px;">
+                    <button id="Correct" style="font-size: large" type="button" class="btn btn-success" onClick="Add_this()">INSERT</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+</div>
+
+<p id="test"></p>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    
+
+</body>
+
+
+<!-----------------------------------------------------------------Client Code--------------------------------------------------------------------------->
+<script>
+
+    var input_choice= document.getElementById("select_input_type");
+
+    var text_in= document.getElementById("H_text");
+
+    var url_in= document.getElementById("H_url");
+    var text_final= "";
+    var correct_pred ="";
+    var org_pred="";
+
+    function Toggle_input(){
+        if(input_choice.value == "Article Link"){
+            text_in.style.display="none"
+            url_in.style.display="block";
+        }
+        else{
+            text_in.style.display="block"
+            url_in.style.display="none";
+        }
+    }
+
+    Toggle_input();
+
+    input_choice.addEventListener("change", function(){
+       Toggle_input();
+    });
+
+    var submit=document.getElementById("submit_button");
+    var out = document.getElementById("test");
+
+    var wrong_choices = document.getElementById("wrong_choices")
+    
+    function show_choices(){
+        $('.pred_assessment').css("display", "none");
+        $('.wrong_choices').css("display", "block");
+
+        wrong_choices.addEventListener("change", function(){
+            correct_pred= wrong_choices.value;
+        });
+    }
+
+//send data to the server to enlist it into the new data file
+    function Add_this(){
+        $('.pred_assessment').css("display", "none");
+        $('.wrong_choices').css("display", "none");
+        $(function () {
+            $('#result').html("Saving Your Answers ...");
+            $.ajax({
+                url: '/Add_new_data',
+                data: JSON.stringify([text_final, correct_pred]),
+                contentType: "application/json; charset=utf-8",
+                type: 'POST',
+                success: function (response) {
+                    $('#result').html("Done!");
+                },
+                error: function (error) {
+                    out.innerHTML="here"
+                }
+            });
+        });
+    }
+
+
+//Send data to the server to process
+    function send_data(){    
+        var save_type=input_choice.value;
+        if(save_type=="Article Link"){
+            text_final= url_in.value;
+        }
+        else{
+            text_final=text_in.value;
+        }
+        $(function () {
+            $('#result').html("Predicting . . .");
+            console.log("Function is successfully called")
+            $.ajax({
+                url: '/headline_prediction',
+                data: JSON.stringify([text_final, save_type]),
+                contentType: "application/json; charset=utf-8",
+                type: 'POST',
+                success: function (response) {
+                    console.log(response);
+                    $('#result').html("");
+                    if(save_type == "Article Link"){
+                         $('#result').html("Title : "+response['title']+"</span></br>");
+                         text_final=response['title'];
+                    }
+                    $('#result').append("Prediction : "+response['prediction']+"</span></br> Probability : "+response['probability']+'%');
+                    $('.pred_assessment').css("display", "block");
+                    correct_pred=response['prediction'];
+
+                },
+                error: function (error) {
+                    out.innerHTML="here"
+                }
+            });
+        });
+    }
+</script>
